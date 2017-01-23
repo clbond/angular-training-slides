@@ -8,30 +8,40 @@
 
 Notes:
 
-- An app is a collection of Modules
-- An app has only one root module
-- An app can have multiple feature modules
-- An app uses built-in modules to have access to 
-- A module defines a collection of Components, Directives, Pipes and Services
-- There's different types of modules: root, feature, built-in and third party modules.
+- Functionality is grouped using `NgModule`s (or "modules")
+- An application may contain many modules
+- An application may define only one _bootstrap_ (entry point) module
+- Angular itself defines numerous modules that you can import to gain access to core functionality
+- A module defines a collection of components, directives, pipes and services
+- A module can import other modules to gain access to the components, directives and services within it
 
 ---
 
-## Angular 2 Modules
+## Decorators / imperative vs declarative
 
-- Collection of components, directives, pipes and services (aka elements)
-- Provide a mechanism to group related pieces of functionality within our application
-- There are 4 types of modules:
-  - The root module (there's only one in an app)
-  - Feature modules (optional)
-  - Built-in modules (`BrowserModule`, `FormsModule`, etc.)
-  - Third party modules (`AngularMaterial`)
-- An Angular 2 application is a collection of modules, starting from the root module
-- Modules can import other modules to extend functionality
+- The majority of functionality inside an Angular application is defined _declaratively_ in metadata
+- Metadata is attached to `class` definitions using _decorators_
+- Examples of Angular decorators are `@NgModule()`, `@Component()`, `@Directive()`, `@Pipe()`, etc.
+- Angular retrieves and parses this metadata and uses it to create an executable application
+- This contrasts with the old way of building applications using imperative statements (eg. jQuery)
 
 ---
 
-## Structure of a Module
+## Application building blocks
+
+The core building blocks of Angular applications are:
+- `NgModule` 
+  - Group together related functionality into a module that can be imported by other modules
+- `Component`
+  - A combination of a _template_ that _somewhat_ resembles HTML and a `class` definition
+  - A template can refer to methods, properties and event handlers inside the `class`
+  - The template and class combine to produce an HTML document that the browser can render
+- Providers
+  - A `class` or `function` that provides some functionality or logic, and can be injected into components and directives
+
+---
+
+## Structure of a module
 
 ```ts
 import { NgModule } from '@angular/core';
@@ -49,16 +59,16 @@ export class MyModule {}
 - `imports`: Other modules required by our module (built-in, feature or third party)
 - `declarations`: Components, directives and pipes defined in our module
 - `providers`: Services defined in our module
-- `exports`: Components, directives or pipes available for other modules
+- `exports`: Components, directives or pipes available for other modules or unit tests
 - `bootstrap`: The root component of the application
 
 ---
 
-## Structure of a Root Module
+## Typical root module
 
 ```ts
 @NgModule({
-  imports:      [ BrowserModule, MyFeatureModule, ThirdPartyModule ],
+  imports:      [ BrowserModule ],
   declarations: [ RootComponent, OtherComponent, MyPipe, MyDirective ],
   providers:    [ MyService ],
   bootstrap:    [ RootComponent ]
@@ -66,16 +76,14 @@ export class MyModule {}
 export class AppModule {}
 ```
 
-- The root module is always called `AppModule`
-- The root module doesn't use the property `exports`
-- There's only one root module in an application
-- Only the root module defines the property `bootstrap`
-- The root module always imports the `BrowserModule`
-- The `BrowserModule` exports common elements of the framework (`NgIf`, `NgFor`, etc.)
+- There's only one root module in an application, which is passed to `bootstrapModule()`
+- Only the root module defines a `bootstrap` component which is the first thing rendered on the screen
+- Applications running inside a browser must import `BrowserModule`
+- `BrowserModule` automatically imports `CommonModule` which contains critical directives (`NgIf`, `NgFor`, `ngSwitch`, etc.)
 
 ---
 
-## Structure of a Feature Module
+## Example feature module
 
 ```ts
 @NgModule({
@@ -87,11 +95,11 @@ export class AppModule {}
 export class MyFeatureModule {}
 ```
 
-- All declared elements are private by default
-- To make an element public we need to add it to the `exports` array
-- There's no root component in a feature module
-- Services are public by default
-- Beware of how the dependency injection works!
+- All components that you wish to use in your templates must be added to `declarations`
+- A component that appears in `declarations` but not `exports` is considered _private_, meaning modules that import this `NgModule` will not have access to that component
+- A component that appears in `declarations` *and* `exports` is considered _public_, and can be freely used by modules that import this `NgModule`
+- There's no root component in a feature module because application bootstrapping was already handled in the _root_ `NgModule`
+- Anything appearing in the `providers` array (typically called _services_) is *public* and can be used by anything that imports this `NgModule`
 
 ---
 
@@ -244,6 +252,12 @@ platformBrowserDynamic().bootstrapModule(AppModule);
 
 ---
 
+## Explanation of JIT, AOT and SSR
+
+Different builds to suit different needs (production vs development and such)
+
+---
+
 ## JIT vs AOT
 
 | Characteristic        | JIT          | AOT               |
@@ -299,23 +313,7 @@ platformBrowserDynamic().bootstrapModule(AppModule);
 
 ---
 
-## Multiple Ways to Define a Component
-
-```ts
-@Component({ // Inline style
-  selector: 'rio-app',
-  styles: ['p { color: red }'],
-  template: '<p>Hello</p>'
-})
-```
-
-```ts
-@Component({ // Webpack style
-  selector: 'rio-app',
-  styles: [require('./app.component.css')],
-  template: require('./app.component.html')
-})
-```
+## How to Define a Component
 
 ```ts
 @Component({ // SystemJS & Angular CLI & AoT style
@@ -335,65 +333,34 @@ Notes:
 
 ---
 
-## Components With External Files
+## Directory structure
 
-Create folders to group related files of a component
+Create folders to create conceptual functionality groups
 
 ```sh
 src
 ├── app
 │   ├── app.module.ts
 │   ├── index.ts
-│   └── root
-│       ├── root.component.css
-│       ├── root.component.html
-│       └── root.component.ts
+│   └── login
+│       ├── login.component.css
+│       ├── login.component.html
+│       └── login.component.ts
 ├── index.html
 └── main.ts
 ```
 
 ---
 
-## Component Tree (Code)
-
-```ts
-@Component({
-  selector: 'rio-root', template: `
-    <rio-header></rio-header>
-    <rio-body></rio-body>`
-})
-```
-
-```ts
-@Component({
-  selector: 'rio-header', template: '<p>The header</p>'
-})
-```
-
-```ts
-@Component({
-  selector: 'rio-body', template: '<rio-message></rio-message>'
-})
-```
-
-```ts
-@Component({
-  selector: 'rio-message', template: '<p>The Message</p>'
-})
-```
-
----
-
-## Component Tree (Diagram)
-
-![Component Tree](content/images/component-tree.jpg)
-
----
-
 ## Registering Components in the Module
 
 ```ts
-// Import your components here ...
+import {
+  RootComponent,
+  HeaderComponent,
+  BodyComponent,
+  MessageComponent,
+} from './components';
 
 @NgModule({
   declarations: [
